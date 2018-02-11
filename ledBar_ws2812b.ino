@@ -6,8 +6,9 @@
 #define PIN 6
 const int interruptNumber = 0;           // Interrupt 0 在 pin 2 上
 const int buttonPin = 2;                 // 按鈕(pushbutton)
-const int ledPin = 13;                   // LED
-volatile int buttonState;                // 用來儲存按鈕狀態
+const int ledPin = 13;   
+int ledNum = 176;  // LED
+volatile int buttonState = 0;                // 用來儲存按鈕狀態
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
@@ -17,7 +18,7 @@ volatile int buttonState;                // 用來儲存按鈕狀態
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(176, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(ledNum, PIN, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -30,19 +31,19 @@ void setup() {
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
   #endif
   // End of trinket special code
-
+  Serial.begin(9600);
   pinMode(ledPin, OUTPUT);               // 把 ledPin 設置成 OUTPUT
   pinMode(buttonPin, INPUT);             // 把 buttonPin 設置成 INPUT
-  attachInterrupt(interruptNumber, buttonStateChanged, CHANGE);
+  attachInterrupt(interruptNumber, buttonStateChanged, FALLING);
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
 }
 
 void loop() {
   // Some example procedures showing how to display to the pixels:
-  colorWipe(strip.Color(50, 0, 0), 10); // Red
-  colorWipe(strip.Color(0, 50, 0), 10); // Green
-  colorWipe(strip.Color(0, 0, 50), 10); // Blue
+//  colorWipe(strip.Color(50, 0, 0), 10); // Red
+//  colorWipe(strip.Color(0, 50, 0), 10); // Green
+//  colorWipe(strip.Color(0, 0, 50), 10); // Blue
 //colorWipe(strip.Color(0, 0, 0, 255), 50); // White RGBW
   // Send a theater pixel chase in...
 //  theaterChase(strip.Color(50, 50, 50), 50); // White
@@ -50,18 +51,55 @@ void loop() {
 //  theaterChase(strip.Color(0, 0, 50), 50); // Blue
 
 //  rainbow(20);
-  rainbowCycle(20);
+//  rainbowCycle(20);
 //  theaterChaseRainbow(50);
+  switch(buttonState){
+    case 0:
+      rainbowCycle(20);
+      break;
+    case 1:
+      ledNum = 88 * 2;
+      colorWipe(strip.Color(100, 100, 100), 10);
+      break;
+    case 2:
+      ledAllClear();
+      break;
+    case 3:
+      ledNum = 88;
+      colorWipe(strip.Color(0, 100, 0), 10);
+      break;
+    case 4:
+      ledNum = 88;
+      colorWipe(strip.Color(0, 0, 100), 10);
+      break;
+    case 5:
+      ledNum = 88;
+      colorWipe(strip.Color(100, 0, 0), 0); // Red
+      break;
+  }
 }
 
 void buttonStateChanged() {
-  buttonState = digitalRead(buttonPin);
+  delay(1000);
+  if (buttonState++ > 5)buttonState = 0;
+  Serial.println(buttonState);
+  
   digitalWrite(ledPin, buttonState);
+}
+
+void ledAllClear(){
+  for(int i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, 0, 0, 0);
+  }
+  strip.show();
 }
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
+  strip.begin();
+  strip.show();
+  delay(wait);
+  for(uint16_t i=0; i<ledNum; i++) {
     strip.setPixelColor(i, c);
     strip.show();
     delay(wait);
@@ -84,7 +122,7 @@ void rainbow(uint8_t wait) {
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
 
-  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+  for(j=0; j<256; j++) { // 5 cycles of all colors on wheel
     for(i=0; i< strip.numPixels(); i++) {
       strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
     }
